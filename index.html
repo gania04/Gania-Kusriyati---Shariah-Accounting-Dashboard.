@@ -254,22 +254,22 @@
             showToast("Transaksi Berhasil!");
         }
 
-        // LOGIKA HPP (FIX AKUNTANSI)
+        // LOGIKA HPP (FIXED AKUNTANSI)
         function hitungHPPDetail() {
             const bahan = parseInt(document.getElementById('modalBahan').value) || 0;
             const ops = parseInt(document.getElementById('modalOps').value) || 0;
             const target = parseInt(document.getElementById('hppTarget').value) || 1;
 
-            // Logika Akuntansi: Total HPP = Bahan + Ops
-            const totalHPPPerPorsi = bahan + ops;
+            // Perbaikan Logika: Target % dibebankan ke Bahan Baku, Ops ditambahkan flat
+            // Rumus: (Bahan / Target%) + Ops
+            const hargaDasar = bahan / (target / 100);
+            const hargaJualRaw = hargaDasar + ops;
             
-            // Rumus: Harga Jual = Total HPP / (Target % / 100)
-            const hargaJualRaw = totalHPPPerPorsi / (target / 100);
-            
-            // Pembulatan ke ribuan terdekat (Komersial)
+            // Pembulatan ke ribuan terdekat
             const hargaJualFinal = Math.ceil(hargaJualRaw / 1000) * 1000;
             
-            document.getElementById('hasilJual').innerText = "Rp " + (totalHPPPerPorsi > 0 ? hargaJualFinal.toLocaleString() : "0");
+            const displayHarga = (bahan > 0) ? hargaJualFinal : 0;
+            document.getElementById('hasilJual').innerText = "Rp " + displayHarga.toLocaleString();
         }
 
         function simpanHPP() {
@@ -289,6 +289,7 @@
             document.getElementById('hppName').value = "";
             document.getElementById('modalBahan').value = "";
             document.getElementById('modalOps').value = "";
+            document.getElementById('hasilJual').innerText = "Rp 0";
         }
 
         // UTILS & UI
