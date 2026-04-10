@@ -74,8 +74,7 @@
                 <h1 class="text-2xl font-black text-emerald-900 mb-8 uppercase italic">Kasir HEMAT</h1>
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div class="lg:col-span-2">
-                        <div id="menuContainer" class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            </div>
+                        <div id="menuContainer" class="grid grid-cols-2 md:grid-cols-3 gap-4"></div>
                     </div>
                     <div class="lg:col-span-1">
                         <div class="glass rounded-3xl shadow-xl flex flex-col border-2 border-emerald-500 overflow-hidden">
@@ -97,7 +96,7 @@
                             <div><label class="text-[10px] font-bold text-slate-500 uppercase">Nama Menu Baru</label>
                                 <input id="hppName" type="text" placeholder="Contoh: Es Kopi Susu" class="w-full p-3 rounded-xl border font-bold shadow-inner"></div>
                             <div><label class="text-[10px] font-bold text-slate-500 uppercase">Target Food Cost (%)</label>
-                                <input id="hppTarget" type="number" value="30" oninput="hitungHPPDetail()" class="w-full p-3 rounded-xl border font-bold"></div>
+                                <input id="hppTarget" type="number" value="35" oninput="hitungHPPDetail()" class="w-full p-3 rounded-xl border font-bold"></div>
                         </div>
                         <div class="space-y-4">
                             <div><label class="text-[10px] font-bold text-slate-500 uppercase">Modal Bahan Baku (Rp)</label>
@@ -172,13 +171,12 @@
         let keranjang = [];
         let historyData = [];
 
-        // DATABASE MENU AWAL
         let daftarMenu = [
             { nama: "Kopi Anekdot", harga: 22000, hpp: 8500 },
             { nama: "Kopi Amanah", harga: 18000, hpp: 7000 }
         ];
 
-        // LOGIKA POS
+        // INITIALIZATION
         function initMenu() {
             const container = document.getElementById('menuContainer');
             container.innerHTML = '';
@@ -195,6 +193,7 @@
             });
         }
 
+        // POS LOGIC
         function buatPesanan(nama, harga) {
             keranjang.push({ nama, harga });
             updateLog();
@@ -254,22 +253,25 @@
             showToast("Transaksi Berhasil!");
         }
 
-        // LOGIKA HPP (FIXED AKUNTANSI)
+        // LOGIKA HPP PERBAIKAN (Standard Akuntansi Kuliner)
         function hitungHPPDetail() {
             const bahan = parseInt(document.getElementById('modalBahan').value) || 0;
             const ops = parseInt(document.getElementById('modalOps').value) || 0;
-            const target = parseInt(document.getElementById('hppTarget').value) || 1;
+            let target = parseInt(document.getElementById('hppTarget').value) || 1;
 
-            // Perbaikan Logika: Target % dibebankan ke Bahan Baku, Ops ditambahkan flat
-            // Rumus: (Bahan / Target%) + Ops
-            const hargaDasar = bahan / (target / 100);
-            const hargaJualRaw = hargaDasar + ops;
+            if (target <= 0) target = 1;
+
+            // RUMUS BENAR: Biaya bahan baku dibagi target food cost, 
+            // lalu ditambah biaya operasional (kemasan) flat di akhir.
+            // Hal ini mencegah biaya kemasan ikut di-markup berkali-kali lipat.
+            const hargaJualBahan = bahan / (target / 100);
+            const hargaJualRaw = hargaJualBahan + ops;
             
-            // Pembulatan ke ribuan terdekat
+            // Pembulatan ke 1000 terdekat agar harga menu cantik (Commercial Rounding)
             const hargaJualFinal = Math.ceil(hargaJualRaw / 1000) * 1000;
             
             const displayHarga = (bahan > 0) ? hargaJualFinal : 0;
-            document.getElementById('hasilJual').innerText = "Rp " + displayHarga.toLocaleString();
+            document.getElementById('hasilJual').innerText = "Rp " + displayHarga.toLocaleString('id-ID');
         }
 
         function simpanHPP() {
@@ -280,19 +282,20 @@
             
             if(!n || j <= 0) return alert("Lengkapi data menu!");
             
+            // HPP yang disimpan adalah modal murni (Bahan + Kemasan)
             daftarMenu.push({ nama: n, harga: j, hpp: (b+o) });
             initMenu();
             showToast(`Menu ${n} disimpan!`);
             showPage('pos');
             
-            // Reset
+            // Reset Form
             document.getElementById('hppName').value = "";
             document.getElementById('modalBahan').value = "";
             document.getElementById('modalOps').value = "";
             document.getElementById('hasilJual').innerText = "Rp 0";
         }
 
-        // UTILS & UI
+        // UI UTILS
         function showPage(pageId, btn) {
             document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
             document.getElementById(pageId).classList.add('active');
@@ -323,8 +326,8 @@
             const laba = omzetTotal - hppTotal;
             const fc = omzetTotal > 0 ? ((hppTotal / omzetTotal) * 100).toFixed(1) : 0;
             document.getElementById('auditBox').innerHTML = `
-                <p>✅ Margin: Rp ${laba.toLocaleString()}</p>
-                <p>📉 Real Food Cost: ${fc}% ${fc > 35 ? '(Hati-hati, tinggi!)' : '(Sehat)'}</p>
+                <p>✅ Laba: Rp ${laba.toLocaleString()}</p>
+                <p>📉 Real Food Cost: ${fc}% ${fc > 40 ? '(Hati-hati, margin tipis!)' : '(Sehat)'}</p>
                 <p>🕌 Zakat Mal: Rp ${(saldoKas * 0.025).toLocaleString()}</p>
             `;
         }
